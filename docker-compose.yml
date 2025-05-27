@@ -1,9 +1,10 @@
-version: '3.8'
+networks:
+  internal:
+    driver: bridge
 
 services:
   pia-qb-port-helper:
-    build: .
-    container_name: pia-qb-port-helper
+    container_name: ghcr.io/jgarcesres/pia-qb-port-helper:latest
     restart: unless-stopped
     environment:
       - QB_HOST=http://qbittorrent:8080
@@ -14,30 +15,82 @@ services:
       - CHECK_INTERVAL=10
     volumes:
       # Mount the PIA port file from wireguard container
-      - /path/to/wireguard/port.dat:/app/port.dat:ro
+      - /path/to/port.dat:/app/port.dat:ro
     depends_on:
-      - qbittorrent
+      qbittorrent:
+        condition: service_started
+      pia-wg:
+        condition: service_healthy
     networks:
-      - qbittorrent-network
+      - internal
 
-  # Example qBittorrent service (adjust as needed)
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest
     container_name: qbittorrent
+    network_mode: service:pia-wg
+    depends_on:
+      - pia-wg
     environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=UTC
+      - PUID=${user}
+      - PGID=${group}
+      - TZ=${tz}
       - WEBUI_PORT=8080
     volumes:
-      - ./config:/config
-      - ./downloads:/downloads
-    ports:
-      - 8080:8080
-    restart: unless-stopped
-    networks:
-      - qbittorrent-network
+      - ${config}/qbittorrent:/config
+      - ${data}/downloads:/downloads
+    restart: always
+    labels:
+    # if you're using traefik
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_proxy"
+      - "traefik.http.routers.qb.rule=Host(`qb.${domain}`)"
+      - "traefik.http.services.qb.loadbalancer.server.port=8081"
 
-networks:
-  qbittorrent-network:
-    driver: bridge
+  pia-wg:
+    image: thrnz/docker-wireguard-pia
+    container_name: pia-wg
+    networks:
+      traefik_proxy:
+        aliases:
+          - sabnzbd
+          - transmission
+          - qbittorrent
+      internal:
+        aliases:
+          - qbittorrent
+    volumes:
+      # Auth token is stored here
+      - pia:/pia
+      # If enabled, the forwarded port is dumped to /pia-shared/port.dat for potential use in othe>
+      - ${config}/wireguard:/pia-shared
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      - LOCAL_NETWORK=192.168.1.0/24
+      - LOC=bogota
+      - PORT_FORWARDING=1
+      - PORT_FILE_CLEANUP=1
+      - PORT_PERSIST=1
+      - USER=${pia_user}
+      - PASS=${pia_pass}
+      - VPNDNS=1.1.1.1,1.0.0.1
+    sysctls:
+      # wg-quick fails to set this without --privileged, so set it here instead if needed
+      - net.ipv4.conf.all.src_valid_mark=1
+      # May as well disable ipv6. Should be blocked anyway.
+      - net.ipv6.conf.default.disable_ipv6=1
+      - net.ipv6.conf.all.disable_ipv6=1
+      - net.ipv6.conf.lo.disable_ipv6=1
+      # The container has no recovery logic. Use a healthcheck to catch disconnects.
+    labels:
+      - "traefik.enable=false"
+      - "traefik.docker.network=traefik_proxy"
+    restart: always
+    healthcheck:
+      test: ["CMD", "sh", "-c", "curl -s --max-time 5 ifconfig.me && test -f /pia-shared/port.dat"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
