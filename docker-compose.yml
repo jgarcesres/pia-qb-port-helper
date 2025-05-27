@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  pia-qb-port-helper:
+    build: .
+    container_name: pia-qb-port-helper
+    restart: unless-stopped
+    environment:
+      - QB_HOST=http://qbittorrent:8080
+      - QB_USERNAME=admin
+      - QB_PASSWORD=adminadmin
+      - PORT_FILE=/app/port.dat
+      - LOG_LEVEL=INFO
+      - CHECK_INTERVAL=10
+    volumes:
+      # Mount the PIA port file from wireguard container
+      - /path/to/wireguard/port.dat:/app/port.dat:ro
+    depends_on:
+      - qbittorrent
+    networks:
+      - qbittorrent-network
+
+  # Example qBittorrent service (adjust as needed)
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=UTC
+      - WEBUI_PORT=8080
+    volumes:
+      - ./config:/config
+      - ./downloads:/downloads
+    ports:
+      - 8080:8080
+    restart: unless-stopped
+    networks:
+      - qbittorrent-network
+
+networks:
+  qbittorrent-network:
+    driver: bridge
