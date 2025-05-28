@@ -29,7 +29,6 @@ ENV QB_PASSWORD=adminadmin
 ENV PORT_FILE=/app/port.dat
 ENV LOG_LEVEL=INFO
 ENV CHECK_INTERVAL=10
-ENV QB_HEALTHCHECK_PORT=8080
 
 # Health check - uses QB_HEALTHCHECK_PORT environment variable
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
