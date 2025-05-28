@@ -33,6 +33,6 @@ ENV QB_HEALTHCHECK_PORT=8080
 
 # Health check - uses QB_HEALTHCHECK_PORT environment variable
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import requests, os; requests.get(f'http://localhost:{os.getenv(\"QB_HEALTHCHECK_PORT\", \"8080\")}', timeout=5)" || exit 1
+    CMD python -c "import requests, os; requests.get(f'{os.getenv(\"QB_HOST\", \"localhost:8080\")}', timeout=5)" || exit 1
 
 CMD ["python", "app.py"]
