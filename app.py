@@ -156,12 +156,20 @@ class PortFileHandler(FileSystemEventHandler):
 def setup_logging(log_level: str = "INFO"):
     """Setup logging configuration with loguru."""
     logger.remove()  # Remove default handler
-    logger.add(
-        sys.stdout,
-        level=log_level.upper(),
-        format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
-        colorize=True
-    )
+    if log_level == "DEBUG":
+        logger.add(
+            sys.stdout,
+            level=log_level.upper(),
+            format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+            colorize=True
+        )
+    else: 
+        logger.add(
+            sys.stdout,
+            level=log_level.upper(),
+            format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <level>{message}</level>",
+            colorize=True
+        )
 
 
 def main():
