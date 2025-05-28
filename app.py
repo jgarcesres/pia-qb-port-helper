@@ -118,8 +118,6 @@ class PortFileHandler(FileSystemEventHandler):
     def update_port(self):
         """Read the port file and update qBittorrent if the port changed."""
         try:
-            # Small delay to ensure file write is complete
-            time.sleep(0.5)
             
             if not os.path.exists(self.port_file_path):
                 logger.warning(f"Port file {self.port_file_path} does not exist")
@@ -199,10 +197,38 @@ def main():
     # Create port file handler
     port_handler = PortFileHandler(PORT_FILE, qb_api)
     
-    # Do initial port update if file exists
+    # Do initial port check and update if file exists
     if os.path.exists(PORT_FILE):
-        logger.info("Performing initial port update")
-        port_handler.update_port()
+        logger.info("Checking initial port configuration")
+        
+        # Read the port from file
+        try:
+            with open(PORT_FILE, 'r') as f:
+                file_port_str = f.read().strip()
+            
+            if file_port_str:
+                file_port = int(file_port_str)
+                
+                # Get current qBittorrent port
+                prefs = qb_api.get_preferences()
+                if prefs:
+                    current_port = prefs.get('listen_port')
+                    
+                    if current_port == file_port:
+                        logger.info(f"Port already correctly set to {file_port}, no update needed")
+                        port_handler.last_port = file_port  # Set last_port to avoid duplicate updates
+                    else:
+                        logger.info(f"Port mismatch: qBittorrent={current_port}, PIA file={file_port}. Updating...")
+                        port_handler.update_port()
+                else:
+                    logger.warning("Could not read current qBittorrent preferences, performing update anyway")
+                    port_handler.update_port()
+            else:
+                logger.warning("Port file is empty")
+                
+        except (ValueError, FileNotFoundError) as e:
+            logger.error(f"Error reading port file during initial check: {e}")
+            
     else:
         logger.warning(f"Port file {PORT_FILE} does not exist yet. Waiting for it to be created.")
     
