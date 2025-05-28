@@ -14,7 +14,6 @@ services:
       - PORT_FILE=/app/port.dat
       - LOG_LEVEL=INFO
       - CHECK_INTERVAL=10
-      - QB_HEALTHCHECK_PORT=8081
     volumes:
       # Mount the PIA port file from wireguard container
       - /path/to/port.dat:/app/port.dat:ro
