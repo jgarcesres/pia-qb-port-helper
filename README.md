@@ -9,6 +9,8 @@ When using PIA VPN with port forwarding enabled, the VPN client writes the forwa
 ## Features
 
 - **Automatic Port Updates**: Monitors PIA's port file and updates qBittorrent instantly when the port changes
+- **Smart Port Handling**: Won't clear the port if the file becomes empty after having a value
+- **Optional Authentication**: Works with qBittorrent instances that have localhost authentication disabled
 - **Health Monitoring**: Periodic health checks to ensure qBittorrent connectivity
 - **Robust Error Handling**: Automatic reconnection and error recovery
 - **Beautiful Logging**: Uses loguru for colorized, structured logging
@@ -22,6 +24,7 @@ When using PIA VPN with port forwarding enabled, the VPN client writes the forwa
 | `QB_HOST` | `http://qbittorrent:8080` | qBittorrent WebUI URL |
 | `QB_USERNAME` | `admin` | qBittorrent WebUI username |
 | `QB_PASSWORD` | `adminadmin` | qBittorrent WebUI password |
+| `QB_DISABLE_AUTH` | `false` | Set to `true` to disable authentication (for qBittorrent with localhost auth disabled) |
 | `PORT_FILE` | `/app/port.dat` | Path to PIA port file (mounted from host) |
 | `LOG_LEVEL` | `INFO` | Logging level (`DEBUG`, `INFO`, `WARNING`, `ERROR`) |
 | `CHECK_INTERVAL` | `10` | Health check interval in seconds |
@@ -95,6 +98,22 @@ docker run -d \
   -v ./wireguard/port.dat:/app/port.dat:ro \
   ghcr.io/yourusername/pia-qb-port-helper:latest
 ```
+
+### Using Without Authentication
+
+If your qBittorrent instance has authentication disabled for localhost (common in container setups), you can disable authentication by setting `QB_DISABLE_AUTH=true`:
+
+```bash
+docker run -d \
+  --name pia-qb-port-helper \
+  --network container:pia-wireguard \
+  -e QB_HOST=http://localhost:8080 \
+  -e QB_DISABLE_AUTH=true \
+  -v ./wireguard/port.dat:/app/port.dat:ro \
+  ghcr.io/yourusername/pia-qb-port-helper:latest
+```
+
+Note: Username and password are not required when authentication is disabled.
 
 ## Building from Source
 

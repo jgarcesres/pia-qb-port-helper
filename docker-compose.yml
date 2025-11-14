@@ -11,6 +11,8 @@ services:
       - QB_HOST=http://qbittorrent:8081
       - QB_USERNAME=admin
       - QB_PASSWORD=adminadmin
+      # Set to true if qBittorrent has authentication disabled for localhost
+      # - QB_DISABLE_AUTH=false
       - PORT_FILE=/app/port.dat
       - LOG_LEVEL=INFO
       - CHECK_INTERVAL=10
