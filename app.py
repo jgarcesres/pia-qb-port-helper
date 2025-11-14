@@ -20,15 +20,21 @@ from loguru import logger
 class QBittorrentAPI:
     """Handle qBittorrent WebUI API interactions."""
     
-    def __init__(self, host: str, username: str, password: str):
+    def __init__(self, host: str, username: str = None, password: str = None, disable_auth: bool = False):
         self.host = host.rstrip('/')
         self.username = username
         self.password = password
+        self.disable_auth = disable_auth
         self.session = requests.Session()
         self.logged_in = False
         
     def login(self) -> bool:
         """Login to qBittorrent WebUI."""
+        if self.disable_auth:
+            logger.info("Authentication disabled, skipping login")
+            self.logged_in = True
+            return True
+            
         try:
             response = self.session.post(
                 f"{self.host}/api/v2/auth/login",
@@ -127,7 +133,11 @@ class PortFileHandler(FileSystemEventHandler):
                 port_str = f.read().strip()
                 
             if not port_str:
-                logger.warning("Port file is empty")
+                # If we had a port before and now the file is empty, don't clear it
+                if self.last_port is not None:
+                    logger.warning(f"Port file is empty but previous port was {self.last_port}. Not clearing port from qBittorrent.")
+                else:
+                    logger.warning("Port file is empty")
                 return
                 
             try:
@@ -176,6 +186,7 @@ def main():
     QB_HOST = os.getenv("QB_HOST", "http://localhost:8080")
     QB_USERNAME = os.getenv("QB_USERNAME", "admin")
     QB_PASSWORD = os.getenv("QB_PASSWORD", "adminadmin")
+    QB_DISABLE_AUTH = os.getenv("QB_DISABLE_AUTH", "false").lower() in ("true", "1", "yes")
     PORT_FILE = os.getenv("PORT_FILE", "/app/port.dat")
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
     CHECK_INTERVAL = int(os.getenv("CHECK_INTERVAL", "10"))
@@ -184,10 +195,11 @@ def main():
     
     logger.info("Starting PIA qBittorrent Port Helper")
     logger.info(f"qBittorrent Host: {QB_HOST}")
+    logger.info(f"Authentication: {'Disabled' if QB_DISABLE_AUTH else 'Enabled'}")
     logger.info(f"Port File: {PORT_FILE}")
     
     # Initialize qBittorrent API
-    qb_api = QBittorrentAPI(QB_HOST, QB_USERNAME, QB_PASSWORD)
+    qb_api = QBittorrentAPI(QB_HOST, QB_USERNAME, QB_PASSWORD, disable_auth=QB_DISABLE_AUTH)
     
     # Test connection
     if not qb_api.login():
