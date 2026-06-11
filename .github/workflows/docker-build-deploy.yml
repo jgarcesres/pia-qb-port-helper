@@ -77,8 +77,17 @@ jobs:
       contents: read
       security-events: write
       actions: read
+      packages: read
 
     steps:
+      # The GHCR package is private; Trivy must authenticate to pull it.
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
