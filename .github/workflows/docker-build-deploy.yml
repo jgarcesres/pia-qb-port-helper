@@ -17,7 +17,7 @@ env:
 
 jobs:
   build-and-push:
-    runs-on: ubuntu-latest
+    runs-on: jg-homelab-runners
     permissions:
       contents: read
       packages: write
@@ -27,6 +27,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      # Self-hosted dind runners (jg-homelab-runners) have no binfmt registered,
+      # unlike GitHub-hosted ubuntu-latest. Required for the linux/arm64 stage.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -64,7 +69,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   security-scan:
-    runs-on: ubuntu-latest
+    runs-on: jg-homelab-runners
     needs: build-and-push
     permissions:
       contents: read
