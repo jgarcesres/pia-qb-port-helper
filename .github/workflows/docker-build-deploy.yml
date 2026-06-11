@@ -17,7 +17,10 @@ env:
 
 jobs:
   build-and-push:
-    runs-on: jg-homelab-runners
+    # GitHub-hosted: this repo is public, and the org self-hosted runner group
+    # (jg-homelab-runners) disallows public repos. Low-frequency build, kept on
+    # hosted minutes. Image still publishes to the org GHCR (IMAGE_NAME = repo).
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
@@ -28,8 +31,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Self-hosted dind runners (jg-homelab-runners) have no binfmt registered,
-      # unlike GitHub-hosted ubuntu-latest. Required for the linux/arm64 stage.
+      # QEMU emulation for the linux/arm64 build stage.
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
@@ -69,7 +71,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   security-scan:
-    runs-on: jg-homelab-runners
+    runs-on: ubuntu-latest
     needs: build-and-push
     permissions:
       contents: read
